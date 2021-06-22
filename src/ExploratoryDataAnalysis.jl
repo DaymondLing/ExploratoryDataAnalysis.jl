@@ -1,5 +1,16 @@
 module ExploratoryDataAnalysis
 
-# Write your package code here.
+using StatsBase
+using DataFrames
+using CategoricalArrays
+using FreqTables
+
+export infovalue
+export ϕ
+export mutualinfo
+export eda
+
+include("eda.jl")
+include("utils.jl")
 
 end
