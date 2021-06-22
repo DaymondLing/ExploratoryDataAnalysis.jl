@@ -1,5 +1,6 @@
 module ExploratoryDataAnalysis
 
+using Base: Real
 using StatsBase
 using DataFrames
 using CategoricalArrays

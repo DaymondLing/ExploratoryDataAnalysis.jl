@@ -25,7 +25,7 @@ function infovalue(p, q)
 end
 
 """
-    ϕ(obs::Matrix{T}) where T <: Real
+    ϕ(f::Matrix{T}) where T <: Real
 
 Computes the phi coefficient of a contingency table `f`, sqrt(χ² / n)
 """
@@ -47,13 +47,14 @@ end
 Computes the phi coefficient between two discrete vectors `x` and `y`
 """
 ϕ(x::Vector{T} where {T <: Integer}, y::Vector{T} where {T <: Integer}) = ϕ(counts(x, y))
+ϕ(x::AbstractVector, y::AbstractVector) = ϕ(freqtable(x, y).array)
 
 """
     mutualinfo(f::Matrix{T}) where T <: Real
 
 Computes mutual information of frequency matrix `f`
 """
-function mutinfo(f::Matrix{T} where {T <: Real})
+function mutualinfo(f::Matrix{T} where {T <: Real})
     minimum(size(f)) >= 2 || throw(ArgumentError("Matrix needed, not single row or column"))
 
     ps = norm1(f)
@@ -71,6 +72,7 @@ Computes mutual information between two discrete vectors `x` and `y`
 function mutualinfo(x::Vector{T} where {T <: Integer}, y::Vector{S} where {S <: Integer})
     return mutualinfo(counts(x, y))
 end
+mutualinfo(x::AbstractVector, y::AbstractVector) = mutualinfo(freqtable(x, y).array)
 
 """
     eda(df, target::Symbol)
@@ -82,55 +84,50 @@ only real & string
 - categoricalarray is good
 -
 """
-function eda(df::AbstractDataFrame, target::Symbol; nbins=20)::AbstractDataFrame
-    tlevels = sort!(unique(df[!, target]))
-    ntlvl = length(tlevels)
-    ntlvl <= 1 && throw(ArgumentError("Target is single valued"))
+function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFrame
+    t = df[!, target]
+    tnlvl = length(unique(t))
+    tnlvl <= 1 && throw(ArgumentError("Target is single valued"))
 
-    if length(tlevels) == 2
-        out = eda2(df, target; nbins=nbins)
+    if tnlvl > nbins
+        t = ranks(t, groups = groups)
+        tnlvl = length(unique(t))
+    end
+
+    if tnlvl == 2
+        out = DataFrame(MutualInfo=Float64[], Phi=Float64[], InfoValue=Float64[])
+        for v in propertynames(df)
+            v == target && continue
+            if eltype(df[!, v]) <: Real
+                vb =  ranks(df[!, v], groups = groups)
+            else
+                vb = df[!, v]
+            end
+
+            frq = freqtable(vb, t).array
+            mutin = mutualinfo(frq)
+            phi = ϕ(frq)
+            iv = infovalue(frq[:, 1], frq[:, 2])
+
+            push!(out, (mutin, phi, iv))
+        end
     else
-        out = edam(df, target; nbins=nbins)
+        out = DataFrame(MutualInfo=Float64[], Phi=Float64[])
+        for v in propertynames(df)
+            v == target && continue
+            if eltype(df[!, v]) <: Real
+                vb =  ranks(df[!, v], groups = groups)
+            else
+                vb = df[!, v]
+            end
+
+            frq = freqtable(vb, t).array
+            mutin = mutualinfo(frq)
+            phi = ϕ(frq)
+
+            push!(out, (mutin, phi))
+        end
     end
 
     out
-end
-
-
-"""
-    eda2(df, target::Symbol)
-
-Returns dataframe of measures of association for binary target
-"""
-function eda2(df::AbstractDataFrame, target::Symbol; nbins=20)::AbstractDataFrame
-    out = DataFrame(MutualInfo=Float64[], Phi=Float64[], InfoValue=Float64[])
-
-    for v in propertynames(df)
-        v == target && continue
-
-
-
-    end
-
-    sort!(out, [order(:MutualInfo, rev=true), order(:InfoValue, rev=true)])
-end
-
-"""
-    edam(df, target::Symbol)
-
-Returns dataframe of measures of association for non-binary target
-"""
-function eda2(df::AbstractDataFrame, target::Symbol; nbins=20)::AbstractDataFrame
-    tlevels = sort!(unique(df[!, target]))
-    ntlvl = length(tlevels)
-
-    out = DataFrame(MutualInfo=Float64[], Phi=Float64[])
-
-    for v in propertynames(df)
-        v == target && continue
-
-
-    end
-
-    sort!(out, [order(:MutualInfo, rev=true), order(:InfoValue, rev=true)])
 end
