@@ -1,0 +1,24 @@
+name = "ExploratoryDataAnalysis"
+uuid = "99bb96a2-a098-46b2-87d3-50b26f87e0c5"
+authors = ["Daymond Ling"]
+version = "0.1.0"
+
+[deps]
+CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+FreqTables = "da1fdf0e-e0ff-5433-a45f-9bb5ff651cb1"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+
+[compat]
+<<<<<<< HEAD
+DataFrames = "1"
+=======
+StatsBase = "0.33"
+>>>>>>> 2021-06-23-00-24-07-499-127742291
+julia = "1.5"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
