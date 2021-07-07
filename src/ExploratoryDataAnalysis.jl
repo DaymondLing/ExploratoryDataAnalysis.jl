@@ -1,10 +1,11 @@
 module ExploratoryDataAnalysis
 
-using Base: Real
+# using Base: Real
 using StatsBase
 using DataFrames
 using CategoricalArrays
 using FreqTables
+using NamedArrays
 
 export infovalue
 export ϕ

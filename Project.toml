@@ -10,11 +10,7 @@ FreqTables = "da1fdf0e-e0ff-5433-a45f-9bb5ff651cb1"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
-<<<<<<< HEAD
 DataFrames = "1"
-=======
-StatsBase = "0.33"
->>>>>>> 2021-06-23-00-24-07-499-127742291
 julia = "1.5"
 
 [extras]

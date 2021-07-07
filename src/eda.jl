@@ -1,7 +1,7 @@
 """
     norm1(v)
 
-normalize `v` to sum 1
+Normalize `v` to sum 1.
 """
 function norm1(v)
     vs = sum(v)
@@ -15,19 +15,19 @@ end
 """
     infovalue(p, q)
 
-Computes the symmetric Kullback-Liebler Divergence between probabilities `p` and `q`
+Compute the symmetric Kullback-Liebler Divergence between `p` and `q`.
 """
 function infovalue(p, q)
     pn = norm1(p)
     qn = norm1(q)
 
-    return kldivergence(pn, qn) + kldivergence(qn, pn)
+    kldivergence(pn, qn) + kldivergence(qn, pn)
 end
 
 """
     ϕ(f::Matrix{T}) where T <: Real
 
-Computes the phi coefficient of a contingency table `f`, sqrt(χ² / n)
+Compute the phi coefficient of a contingency table `f`, sqrt(χ² / n).
 """
 function ϕ(f::Matrix{T}) where {T <: Real}
     minimum(size(f)) >= 2 || throw(ArgumentError("Matrix needed, not single row or column"))
@@ -38,13 +38,14 @@ function ϕ(f::Matrix{T}) where {T <: Real}
     ep = rp .* cp                       # expected probabilities
     ϕ² = sum((p .- ep).^2 ./ ep)        # ϕ²
 
-    return sqrt(ϕ²)
+    sqrt(ϕ²)
 end
+ϕ(f::NamedArray) = ϕ(f.array)
 
 """
     ϕ(x::Vector{T} where T<:Integer, y::Vector{T} where T<:Integer)
 
-Computes the phi coefficient between two discrete vectors `x` and `y`
+Compute the phi coefficient of two discrete vectors `x` and `y`.
 """
 ϕ(x::Vector{T} where {T <: Integer}, y::Vector{T} where {T <: Integer}) = ϕ(counts(x, y))
 ϕ(x::AbstractVector, y::AbstractVector) = ϕ(freqtable(x, y).array)
@@ -52,7 +53,7 @@ Computes the phi coefficient between two discrete vectors `x` and `y`
 """
     mutualinfo(f::Matrix{T}) where T <: Real
 
-Computes mutual information of frequency matrix `f`
+Compute the mutual information of frequency matrix `f`.
 """
 function mutualinfo(f::Matrix{T} where {T <: Real})
     minimum(size(f)) >= 2 || throw(ArgumentError("Matrix needed, not single row or column"))
@@ -61,43 +62,44 @@ function mutualinfo(f::Matrix{T} where {T <: Real})
     px = sum(ps; dims=2)
     py = sum(ps; dims=1)
 
-    return entropy(px) + entropy(py) - entropy(ps)
+    entropy(px) + entropy(py) - entropy(ps)
 end
+mutualinfo(f::NamedArray) = mutualinfo(f.array)
 
 """
-    mutualinfo(x, y)
+    mutualinfo(x::Vector, y::Vector)
 
-Computes mutual information between two discrete vectors `x` and `y`
+Compute the mutual information of two discrete vectors `x` and `y`.
 """
 function mutualinfo(x::Vector{T} where {T <: Integer}, y::Vector{S} where {S <: Integer})
-    return mutualinfo(counts(x, y))
+    mutualinfo(counts(x, y))
 end
 mutualinfo(x::AbstractVector, y::AbstractVector) = mutualinfo(freqtable(x, y).array)
 
 """
-    eda(df, target::Symbol)
+    eda(df::AbstractDataFrame, target::Symbol)
 
-Returns dataframe of measures of association
+Return a dataframe of Mutual Information and ϕ coefficient between `target` and other
+variables in `df`. If `target` is binary, Information Value is also returned.
 
-only real & string
-
-- categoricalarray is good
--
+The dataframe is sorted by descending Mutual Information.
 """
 function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFrame
     t = df[!, target]
     tnlvl = length(unique(t))
     tnlvl <= 1 && throw(ArgumentError("Target is single valued"))
 
-    if tnlvl > nbins
+    if tnlvl > groups
         t = ranks(t, groups = groups)
         tnlvl = length(unique(t))
     end
 
     if tnlvl == 2
-        out = DataFrame(MutualInfo=Float64[], Phi=Float64[], InfoValue=Float64[])
+        out = DataFrame(Variable=Symbol[], MutualInfo=Float64[], Phi=Float64[], InfoValue=Float64[])
         for v in propertynames(df)
+            println(v, "  ", eltype(df[!, v]))
             v == target && continue
+
             if eltype(df[!, v]) <: Real
                 vb =  ranks(df[!, v], groups = groups)
             else
@@ -109,10 +111,10 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
             phi = ϕ(frq)
             iv = infovalue(frq[:, 1], frq[:, 2])
 
-            push!(out, (mutin, phi, iv))
+            push!(out, (v, mutin, phi, iv))
         end
     else
-        out = DataFrame(MutualInfo=Float64[], Phi=Float64[])
+        out = DataFrame(Variable=Symbol[], MutualInfo=Float64[], Phi=Float64[])
         for v in propertynames(df)
             v == target && continue
             if eltype(df[!, v]) <: Real
@@ -125,9 +127,9 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
             mutin = mutualinfo(frq)
             phi = ϕ(frq)
 
-            push!(out, (mutin, phi))
+            push!(out, (v, mutin, phi))
         end
     end
 
-    out
+    sort!(out, [:MutualInfo, :Phi], rev = true)
 end
