@@ -124,10 +124,10 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
             end
 
             mutin = mutualinfo(frq)
-            phi = ϕ(frq)
+            cramv = cramerv(frq)
             iv = infovalue(frq[:, 1], frq[:, 2])
 
-            push!(out, (v, string(vtype), vnlvl, mutin, phi, iv))
+            push!(out, (v, string(vtype), vnlvl, mutin, cramv, iv))
         end
     else
         out = DataFrame(Variable=Symbol[], Vartype=String[], Varlvls=Int[],
@@ -152,11 +152,11 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
             end
 
             mutin = mutualinfo(frq)
-            phi = ϕ(frq)
+            cramv = cramerv(frq)
 
-            push!(out, (v, string(vtype), vnlvl, mutin, phi))
+            push!(out, (v, string(vtype), vnlvl, mutin, cramv))
         end
     end
 
-    sort!(out, [:MutualInfo, :Phi], rev = true)
+    sort!(out, [:MutualInfo, :CramerV], rev = true)
 end
