@@ -102,7 +102,7 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
     println("Target: $target   type: $(typeof(t))   Levels: $tnlvl")
 
     if tnlvl == 2
-        out = DataFrame(Variable=Symbol[], Vartype=DataType[], Vargrps=Int[],
+        out = DataFrame(Variable=Symbol[], Vartype=DataType[], Varlvls=Int[],
                 MutualInfo=Float64[], Phi=Float64[], InfoValue=Float64[])
         for v in propertynames(df)
             v == target && continue
@@ -114,7 +114,7 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
             end
 
             frq = freqtable(vb, t).array
-            vnlvl = size(frq, 2)
+            vnlvl = size(frq, 1)
             if vnlvl == 1
                 println("Warning: [$v] is singled valued, skipped.")
                 continue
@@ -127,7 +127,7 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
             push!(out, (v, typeof(df[!, v]), vnlvl, mutin, phi, iv))
         end
     else
-        out = DataFrame(Variable=Symbol[], Vartype=DataType[], Vargrps=Int[],
+        out = DataFrame(Variable=Symbol[], Vartype=DataType[], Varlvls=Int[],
                 MutualInfo=Float64[], Phi=Float64[])
         for v in propertynames(df)
             v == target && continue
@@ -138,7 +138,7 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
             end
 
             frq = freqtable(vb, t).array
-            vnlvl = size(frq, 2)
+            vnlvl = size(frq, 1)
             if vnlvl == 1
                 println("Warning: [$v] is singled valued, skipped.")
                 continue
