@@ -115,8 +115,8 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
 
             frq = freqtable(vb, t).array
             vnlvl = size(frq, 2)
-            if vnlnl == 1
-                println("Warning: [$v] is singled valued, skipped")
+            if vnlvl == 1
+                println("Warning: [$v] is singled valued, skipped.")
                 continue
             end
 
@@ -139,8 +139,8 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
 
             frq = freqtable(vb, t).array
             vnlvl = size(frq, 2)
-            if vnlnl == 1
-                println("Warning: [$v] is singled valued, skipped")
+            if vnlvl == 1
+                println("Warning: [$v] is singled valued, skipped.")
                 continue
             end
 
