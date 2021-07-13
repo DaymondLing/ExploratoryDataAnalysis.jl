@@ -107,7 +107,8 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
         for v in propertynames(df)
             v == target && continue
 
-            if eltype(df[!, v]) <: Real
+            vtype = eltype(df[!, v])
+            if vtype <: Union{Missing, Real}
                 vb =  ranks(df[!, v], groups = groups)
             else
                 vb = df[!, v]
@@ -118,20 +119,24 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
             if vnlvl == 1
                 println("Warning: [$v] is singled valued, skipped.")
                 continue
+            elseif vnlvl >= 100
+                println("Warning: [$v] has more than 100 levels, suspicious")
             end
 
             mutin = mutualinfo(frq)
             phi = ϕ(frq)
             iv = infovalue(frq[:, 1], frq[:, 2])
 
-            push!(out, (v, typeof(df[!, v]), vnlvl, mutin, phi, iv))
+            push!(out, (v, eltype(df[!, v]), vnlvl, mutin, phi, iv))
         end
     else
         out = DataFrame(Variable=Symbol[], Vartype=DataType[], Varlvls=Int[],
                 MutualInfo=Float64[], Phi=Float64[])
         for v in propertynames(df)
             v == target && continue
-            if eltype(df[!, v]) <: Real
+
+            vtype = eltype(df[!, v])
+            if vtype <: Real
                 vb =  ranks(df[!, v], groups = groups)
             else
                 vb = df[!, v]
@@ -142,12 +147,14 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
             if vnlvl == 1
                 println("Warning: [$v] is singled valued, skipped.")
                 continue
+            elseif vnlvl >= 100
+                println("Warning: [$v] has more than 100 levels, suspicious")
             end
 
             mutin = mutualinfo(frq)
             phi = ϕ(frq)
 
-            push!(out, (v, typeof(df[!, v]), vnlvl, mutin, phi))
+            push!(out, (v, eltype(df[!, v]), vnlvl, mutin, phi))
         end
     end
 
