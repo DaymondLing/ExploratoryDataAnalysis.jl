@@ -8,7 +8,7 @@ using FreqTables
 using NamedArrays
 
 export infovalue
-export ϕ
+export cramerv
 export mutualinfo
 export eda
 

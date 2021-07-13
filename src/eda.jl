@@ -26,10 +26,11 @@ function infovalue(p, q)
 end
 
 """
-    ϕ(f::Matrix{T}) where T <: Real
+    cramerv(f::Matrix{T}) where T <: Real
 
-Compute the phi coefficient of a contingency table `f`, sqrt(χ² / n).\\
-Value is bounded within [0, √min(row-1,col-1)].
+Compute Cramer's V of a contingency table `f`.\\
+ϕ coefficient is √(χ²/n), bounded within [0, √min(row-1,col-1)],\\
+Cramer's V is ϕ/√min(row-1,col-1), bounded within [0,1].
 """
 function ϕ(f::Matrix{T}) where {T <: Real}
     minimum(size(f)) >= 2 || throw(ArgumentError("Matrix needed, not single row or column"))
@@ -40,18 +41,17 @@ function ϕ(f::Matrix{T}) where {T <: Real}
     ep = rp .* cp                       # expected probabilities
     ϕ² = sum((p .- ep).^2 ./ ep)        # ϕ²
 
-    sqrt(ϕ²)
+    sqrt(ϕ² / (minimum(size(f)) - 1))   # Cramer's V
 end
-ϕ(f::NamedArray) = ϕ(f.array)
+cramerv(f::NamedArray) = cramerv(f.array)
 
 """
-    ϕ(x::Vector{T} where T<:Integer, y::Vector{T} where T<:Integer)
+    cramerv(x::Vector{T} where T<:Integer, y::Vector{T} where T<:Integer)
 
-Compute the phi coefficient of two discrete vectors `x` and `y`.\\
-Value is bounded within [0, √min(row-1,col-1)].
+Compute Cramer's V of two discrete vectors `x` and `y`.\\
 """
-ϕ(x::Vector{T} where {T <: Integer}, y::Vector{T} where {T <: Integer}) = ϕ(counts(x, y))
-ϕ(x::AbstractVector, y::AbstractVector) = ϕ(freqtable(x, y).array)
+cramerv(x::Vector{T} where {T <: Integer}, y::Vector{T} where {T <: Integer}) = cramerv(counts(x, y))
+cramerv(x::AbstractVector, y::AbstractVector) = cramerv(freqtable(x, y).array)
 
 """
     mutualinfo(f::Matrix{T}) where T <: Real
@@ -102,8 +102,8 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
     println("Target: $target   type: $(typeof(t))   Levels: $tnlvl")
 
     if tnlvl == 2
-        out = DataFrame(Variable=Symbol[], Vartype=DataType[], Varlvls=Int[],
-                MutualInfo=Float64[], Phi=Float64[], InfoValue=Float64[])
+        out = DataFrame(Variable=Symbol[], Vartype=String[], Varlvls=Int[],
+                MutualInfo=Float64[], CramerV=Float64[], InfoValue=Float64[])
         for v in propertynames(df)
             v == target && continue
 
@@ -127,16 +127,16 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
             phi = ϕ(frq)
             iv = infovalue(frq[:, 1], frq[:, 2])
 
-            push!(out, (v, eltype(df[!, v]), vnlvl, mutin, phi, iv))
+            push!(out, (v, string(vtype), vnlvl, mutin, phi, iv))
         end
     else
-        out = DataFrame(Variable=Symbol[], Vartype=DataType[], Varlvls=Int[],
-                MutualInfo=Float64[], Phi=Float64[])
+        out = DataFrame(Variable=Symbol[], Vartype=String[], Varlvls=Int[],
+                MutualInfo=Float64[], CramerV=Float64[])
         for v in propertynames(df)
             v == target && continue
 
             vtype = eltype(df[!, v])
-            if vtype <: Real
+            if vtype <: Union{Missing, Real}
                 vb =  ranks(df[!, v], groups = groups)
             else
                 vb = df[!, v]
@@ -154,7 +154,7 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
             mutin = mutualinfo(frq)
             phi = ϕ(frq)
 
-            push!(out, (v, eltype(df[!, v]), vnlvl, mutin, phi))
+            push!(out, (v, string(vtype), vnlvl, mutin, phi))
         end
     end
 
