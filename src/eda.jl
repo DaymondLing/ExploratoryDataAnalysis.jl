@@ -15,7 +15,8 @@ end
 """
     infovalue(p, q)
 
-Compute the symmetric Kullback-Liebler Divergence between `p` and `q`.
+Compute the symmetric relative entropy or Kullback-Liebler Divergence between `p` and `q`.\\
+Value is bounded within [0, ∞].
 """
 function infovalue(p, q)
     pn = norm1(p)
@@ -27,7 +28,8 @@ end
 """
     ϕ(f::Matrix{T}) where T <: Real
 
-Compute the phi coefficient of a contingency table `f`, sqrt(χ² / n).
+Compute the phi coefficient of a contingency table `f`, sqrt(χ² / n).\\
+Value is bounded within [0, √min(row-1,col-1)].
 """
 function ϕ(f::Matrix{T}) where {T <: Real}
     minimum(size(f)) >= 2 || throw(ArgumentError("Matrix needed, not single row or column"))
@@ -45,7 +47,8 @@ end
 """
     ϕ(x::Vector{T} where T<:Integer, y::Vector{T} where T<:Integer)
 
-Compute the phi coefficient of two discrete vectors `x` and `y`.
+Compute the phi coefficient of two discrete vectors `x` and `y`.\\
+Value is bounded within [0, √min(row-1,col-1)].
 """
 ϕ(x::Vector{T} where {T <: Integer}, y::Vector{T} where {T <: Integer}) = ϕ(counts(x, y))
 ϕ(x::AbstractVector, y::AbstractVector) = ϕ(freqtable(x, y).array)
@@ -53,7 +56,8 @@ Compute the phi coefficient of two discrete vectors `x` and `y`.
 """
     mutualinfo(f::Matrix{T}) where T <: Real
 
-Compute the mutual information of frequency matrix `f`.
+Compute the mutual information of frequency matrix `f`.\\
+Value is bounded within [0, ∞].
 """
 function mutualinfo(f::Matrix{T} where {T <: Real})
     minimum(size(f)) >= 2 || throw(ArgumentError("Matrix needed, not single row or column"))
@@ -69,7 +73,8 @@ mutualinfo(f::NamedArray) = mutualinfo(f.array)
 """
     mutualinfo(x::Vector, y::Vector)
 
-Compute the mutual information of two discrete vectors `x` and `y`.
+Compute the mutual information of two discrete vectors `x` and `y`.\\
+Value is bounded within [0, ∞].
 """
 function mutualinfo(x::Vector{T} where {T <: Integer}, y::Vector{S} where {S <: Integer})
     mutualinfo(counts(x, y))
@@ -94,10 +99,12 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
         tnlvl = length(unique(t))
     end
 
+    println("Target: $target   type: $(typeof(t))   Levels: $tnlvl")
+
     if tnlvl == 2
-        out = DataFrame(Variable=Symbol[], MutualInfo=Float64[], Phi=Float64[], InfoValue=Float64[])
+        out = DataFrame(Variable=Symbol[], Vartype=DataType[], Vargrps=Int[],
+                MutualInfo=Float64[], Phi=Float64[], InfoValue=Float64[])
         for v in propertynames(df)
-            println(v, "  ", eltype(df[!, v]))
             v == target && continue
 
             if eltype(df[!, v]) <: Real
@@ -107,14 +114,21 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
             end
 
             frq = freqtable(vb, t).array
+            vnlvl = size(frq, 2)
+            if vnlnl == 1
+                println("Warning: [$v] is singled valued, skipped")
+                continue
+            end
+
             mutin = mutualinfo(frq)
             phi = ϕ(frq)
             iv = infovalue(frq[:, 1], frq[:, 2])
 
-            push!(out, (v, mutin, phi, iv))
+            push!(out, (v, typeof(df[!, v]), vnlvl, mutin, phi, iv))
         end
     else
-        out = DataFrame(Variable=Symbol[], MutualInfo=Float64[], Phi=Float64[])
+        out = DataFrame(Variable=Symbol[], Vartype=DataType[], Vargrps=Int[],
+                MutualInfo=Float64[], Phi=Float64[])
         for v in propertynames(df)
             v == target && continue
             if eltype(df[!, v]) <: Real
@@ -124,10 +138,16 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
             end
 
             frq = freqtable(vb, t).array
+            vnlvl = size(frq, 2)
+            if vnlnl == 1
+                println("Warning: [$v] is singled valued, skipped")
+                continue
+            end
+
             mutin = mutualinfo(frq)
             phi = ϕ(frq)
 
-            push!(out, (v, mutin, phi))
+            push!(out, (v, typeof(df[!, v]), vnlvl, mutin, phi))
         end
     end
 
