@@ -32,7 +32,7 @@ Compute Cramer's V of a contingency table `f`.\\
 ϕ coefficient is √(χ²/n), bounded within [0, √min(row-1,col-1)],\\
 Cramer's V is ϕ/√min(row-1,col-1), bounded within [0,1].
 """
-function ϕ(f::Matrix{T}) where {T <: Real}
+function cramerv(f::Matrix{T}) where {T <: Real}
     minimum(size(f)) >= 2 || throw(ArgumentError("Matrix needed, not single row or column"))
 
     p = norm1(f)
