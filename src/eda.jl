@@ -15,7 +15,7 @@ end
 """
     infovalue(p, q)
 
-Compute the symmetric relative entropy or Kullback-Liebler Divergence between `p` and `q`.\\
+Compute the symmetric Relative Entropy (Kullback-Liebler Divergence) between `p` and `q`.\\
 Value is bounded within [0, ∞].
 """
 function infovalue(p, q)
@@ -24,6 +24,8 @@ function infovalue(p, q)
 
     kldivergence(pn, qn) + kldivergence(qn, pn)
 end
+infovalue(f::Matrix) = infovalue(f[:, 1], f[:, 2])
+infovalue(f::NamedArray) = infovalue(f.array)
 
 """
     cramerv(f::Matrix{T}) where T <: Real
@@ -32,14 +34,14 @@ Compute Cramer's V of a contingency table `f`.\\
 ϕ coefficient is √(χ²/n), bounded within [0, √min(row-1,col-1)],\\
 Cramer's V is ϕ/√min(row-1,col-1), bounded within [0,1].
 """
-function cramerv(f::Matrix{T}) where {T <: Real}
+function cramerv(f::Matrix{T}) where {T<:Real}
     minimum(size(f)) >= 2 || throw(ArgumentError("Matrix needed, not single row or column"))
 
     p = norm1(f)
-    rp = sum(p; dims=2)                 # row marginal
-    cp = sum(p; dims=1)                 # column marginal
+    rp = sum(p; dims = 2)                 # row marginal
+    cp = sum(p; dims = 1)                 # column marginal
     ep = rp .* cp                       # expected probabilities
-    ϕ² = sum((p .- ep).^2 ./ ep)        # ϕ²
+    ϕ² = sum((p .- ep) .^ 2 ./ ep)        # ϕ²
 
     sqrt(ϕ² / (minimum(size(f)) - 1))   # Cramer's V
 end
@@ -50,21 +52,21 @@ cramerv(f::NamedArray) = cramerv(f.array)
 
 Compute Cramer's V of two discrete vectors `x` and `y`.\\
 """
-cramerv(x::Vector{T} where {T <: Integer}, y::Vector{T} where {T <: Integer}) = cramerv(counts(x, y))
+cramerv(x::Vector{T} where {T<:Integer}, y::Vector{T} where {T<:Integer}) =
+    cramerv(counts(x, y))
 cramerv(x::AbstractVector, y::AbstractVector) = cramerv(freqtable(x, y).array)
 
 """
     mutualinfo(f::Matrix{T}) where T <: Real
 
-Compute the mutual information of frequency matrix `f`.\\
-Value is bounded within [0, ∞].
+Compute the mutual information of frequency matrix `f`; value is bounded within [0, ∞].
 """
-function mutualinfo(f::Matrix{T} where {T <: Real})
+function mutualinfo(f::Matrix{T} where {T<:Real})
     minimum(size(f)) >= 2 || throw(ArgumentError("Matrix needed, not single row or column"))
 
     ps = norm1(f)
-    px = sum(ps; dims=2)
-    py = sum(ps; dims=1)
+    px = sum(ps; dims = 2)
+    py = sum(ps; dims = 1)
 
     entropy(px) + entropy(py) - entropy(ps)
 end
@@ -73,10 +75,9 @@ mutualinfo(f::NamedArray) = mutualinfo(f.array)
 """
     mutualinfo(x::Vector, y::Vector)
 
-Compute the mutual information of two discrete vectors `x` and `y`.\\
-Value is bounded within [0, ∞].
+Compute the mutual information of two discrete vectors `x` and `y`, value is bounded within [0, ∞].
 """
-function mutualinfo(x::Vector{T} where {T <: Integer}, y::Vector{S} where {S <: Integer})
+function mutualinfo(x::Vector{T} where {T<:Integer}, y::Vector{S} where {S<:Integer})
     mutualinfo(counts(x, y))
 end
 mutualinfo(x::AbstractVector, y::AbstractVector) = mutualinfo(freqtable(x, y).array)
@@ -84,12 +85,12 @@ mutualinfo(x::AbstractVector, y::AbstractVector) = mutualinfo(freqtable(x, y).ar
 """
     eda(df::AbstractDataFrame, target::Symbol)
 
-Return a dataframe of Mutual Information and ϕ coefficient between `target` and other
+Return a dataframe of Mutual Information and Cramer's V between `target` and other
 variables in `df`. If `target` is binary, Information Value is also returned.
 
 The dataframe is sorted by descending Mutual Information.
 """
-function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFrame
+function eda(df::AbstractDataFrame, target::Symbol; groups = 20)::AbstractDataFrame
     t = df[!, target]
     tnlvl = length(unique(t))
     tnlvl <= 1 && throw(ArgumentError("Target is single valued"))
@@ -101,15 +102,24 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
 
     println("Target: $target   type: $(typeof(t))   Levels: $tnlvl")
 
+    lk = ReentrantLock()
+
     if tnlvl == 2
-        out = DataFrame(Variable=Symbol[], Vartype=String[], Varlvls=Int[],
-                MutualInfo=Float64[], CramerV=Float64[], InfoValue=Float64[])
-        for v in propertynames(df)
+        out = DataFrame(
+            Variable   = Symbol[],
+            Vartype    = String[],
+            Varlvls    = Int[],
+            MutualInfo = Float64[],
+            CramerV    = Float64[],
+            InfoValue  = Float64[],
+        )
+
+        Threads.@threads for v in propertynames(df)
             v == target && continue
 
             vtype = eltype(df[!, v])
-            if vtype <: Union{Missing, Real}
-                vb =  ranks(df[!, v], groups = groups)
+            if vtype <: Union{Missing,Real}
+                vb = ranks(df[!, v], groups = groups)
             else
                 vb = df[!, v]
             end
@@ -119,25 +129,33 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
             if vnlvl == 1
                 println("Warning: [$v] is singled valued, skipped.")
                 continue
-            elseif vnlvl >= 100
-                println("Warning: [$v] has more than 100 levels, suspicious")
+            elseif vnlvl > 50
+                println("Warning: [$v] has more than 100 levels, consider binning")
             end
 
             mutin = mutualinfo(frq)
             cramv = cramerv(frq)
             iv = infovalue(frq[:, 1], frq[:, 2])
 
+            lock(lk)
             push!(out, (v, string(vtype), vnlvl, mutin, cramv, iv))
+            unlock(lk)
         end
     else
-        out = DataFrame(Variable=Symbol[], Vartype=String[], Varlvls=Int[],
-                MutualInfo=Float64[], CramerV=Float64[])
-        for v in propertynames(df)
+        out = DataFrame(
+            Variable   = Symbol[],
+            Vartype    = String[],
+            Varlvls    = Int[],
+            MutualInfo = Float64[],
+            CramerV    = Float64[],
+        )
+
+        Threads.@threads for v in propertynames(df)
             v == target && continue
 
             vtype = eltype(df[!, v])
-            if vtype <: Union{Missing, Real}
-                vb =  ranks(df[!, v], groups = groups)
+            if vtype <: Union{Missing,Real}
+                vb = ranks(df[!, v], groups = groups)
             else
                 vb = df[!, v]
             end
@@ -147,14 +165,16 @@ function eda(df::AbstractDataFrame, target::Symbol; groups=20)::AbstractDataFram
             if vnlvl == 1
                 println("Warning: [$v] is singled valued, skipped.")
                 continue
-            elseif vnlvl >= 100
-                println("Warning: [$v] has more than 100 levels, suspicious")
+            elseif vnlvl > 50
+                println("Warning: [$v] has more than 100 levels, consider binning")
             end
 
             mutin = mutualinfo(frq)
             cramv = cramerv(frq)
 
+            lock(lk)
             push!(out, (v, string(vtype), vnlvl, mutin, cramv))
+            unlock(lk)
         end
     end
 

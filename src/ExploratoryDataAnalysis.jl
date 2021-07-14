@@ -1,6 +1,5 @@
 module ExploratoryDataAnalysis
 
-# using Base: Real
 using StatsBase
 using DataFrames
 using CategoricalArrays
@@ -11,8 +10,9 @@ export infovalue
 export cramerv
 export mutualinfo
 export eda
+export ranks
 
 include("eda.jl")
-include("utils.jl")
+include("ranks.jl")
 
 end
