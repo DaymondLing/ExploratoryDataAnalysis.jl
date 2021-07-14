@@ -9,7 +9,7 @@ Missing values are assigned to group `missing`.
 Default values of `rank = tiedrank` and `rev = false` results
 in similar grouping as SAS PROC RANK groups=n tied=mean.
 """
-function ranks(x::Vector; groups::Int = 10, rank = tiedrank, rev = false)
+function ranks(x::AbstractVector; groups::Int = 10, rank = tiedrank, rev = false)
     nx = length(x)
     nx >= 2 || throw(ArgumentError("x length should be >= 2"))
     groups >= 2 || throw(ArgumentError("groups should be >= 2"))
@@ -18,7 +18,7 @@ function ranks(x::Vector; groups::Int = 10, rank = tiedrank, rev = false)
 end
 
 function ranks(
-    x::Vector{T} where {T>:Missing};
+    x::AbstractVector{T} where {T>:Missing};
     groups::Int = 10,
     rank = tiedrank,
     rev = false,
