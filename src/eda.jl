@@ -12,10 +12,12 @@ function norm1(v)
     end
 end
 
+
 """
     infovalue(p, q)
 
-Compute the symmetric Relative Entropy (Kullback-Liebler Divergence) between `p` and `q`.\\
+Compute the symmetric Relative Entropy (Kullback-Liebler Divergence) between `p` and `q`,
+two probability vectors or two frequency count vectors.
 Value is bounded within [0, ∞].
 """
 function infovalue(p, q)
@@ -27,11 +29,12 @@ end
 infovalue(f::Matrix) = infovalue(f[:, 1], f[:, 2])
 infovalue(f::NamedArray) = infovalue(f.array)
 
+
 """
     cramerv(f::Matrix{T}) where T <: Real
 
 Compute Cramer's V of a contingency table `f`.\\
-ϕ coefficient is √(χ²/n), bounded within [0, √min(row-1,col-1)],\\
+ϕ coefficient is √(χ²/n), bounded within [0, √min(row-1,col-1)],
 Cramer's V is ϕ/√min(row-1,col-1), bounded within [0,1].
 """
 function cramerv(f::Matrix{T}) where {T<:Real}
@@ -47,14 +50,29 @@ function cramerv(f::Matrix{T}) where {T<:Real}
 end
 cramerv(f::NamedArray) = cramerv(f.array)
 
+
 """
     cramerv(x::Vector{T} where T<:Integer, y::Vector{T} where T<:Integer)
 
-Compute Cramer's V of two discrete vectors `x` and `y`.\\
+Compute Cramer's V of two presumed discrete vectors `x` and `y`.\\
 """
 cramerv(x::Vector{T} where {T<:Integer}, y::Vector{T} where {T<:Integer}) =
-    cramerv(counts(x, y))
-cramerv(x::AbstractVector, y::AbstractVector) = cramerv(freqtable(x, y).array)
+    cramerv(freqtable(x, y).array)
+
+
+"""
+    cramerv(x::Vector, y::Vector; groups = 10)
+
+Compute Cramer's V of two presumed continuous vectors `x` and `y`,
+vectors are binned into `groups` first.
+"""
+function cramerv(x::AbstractVector, y::AbstractVector; groups = 10)
+    xr = ranks(x; groups = groups)
+    yr = ranks(y, groups = groups)
+
+    cramerv(freqtable(xr, yr).array)
+end
+
 
 """
     mutualinfo(f::Matrix{T}) where T <: Real
@@ -72,15 +90,28 @@ function mutualinfo(f::Matrix{T} where {T<:Real})
 end
 mutualinfo(f::NamedArray) = mutualinfo(f.array)
 
+
+"""
+    mutualinfo(x::Vector{T} where T<:Integer, y::Vector{T} where T<:Integer)
+
+Compute mutual information of two presumed discrete vectors `x` and `y`.\\
+"""
+mutualinfo(x::Vector{T} where {T<:Integer}, y::Vector{T} where {T<:Integer}) =
+    mutualinfo(freqtable(x, y).array)
+
+
 """
     mutualinfo(x::Vector, y::Vector)
 
-Compute the mutual information of two discrete vectors `x` and `y`, value is bounded within [0, ∞].
+Compute the mutual information of two presumed continuous vectors `x` and `y`.
 """
-function mutualinfo(x::Vector{T} where {T<:Integer}, y::Vector{S} where {S<:Integer})
-    mutualinfo(counts(x, y))
+function mutualinfo(x::AbstractVector, y::AbstractVector; groups = 10)
+    xr = ranks(x; groups = groups)
+    yr = ranks(y, groups = groups)
+
+    mutualinfo(freqtable(xr, yr).array)
 end
-mutualinfo(x::AbstractVector, y::AbstractVector) = mutualinfo(freqtable(x, y).array)
+
 
 """
     eda(df::AbstractDataFrame, target::Symbol)
