@@ -41,10 +41,10 @@ function cramerv(f::Matrix{T}) where {T<:Real}
     minimum(size(f)) >= 2 || throw(ArgumentError("Matrix needed, not single row or column"))
 
     p = norm1(f)
-    rp = sum(p; dims = 2)                 # row marginal
-    cp = sum(p; dims = 1)                 # column marginal
+    rp = sum(p; dims = 2)               # row marginal
+    cp = sum(p; dims = 1)               # column marginal
     ep = rp .* cp                       # expected probabilities
-    ϕ² = sum((p .- ep) .^ 2 ./ ep)        # ϕ²
+    ϕ² = sum((p .- ep) .^ 2 ./ ep)      # ϕ²
 
     sqrt(ϕ² / (minimum(size(f)) - 1))   # Cramer's V
 end
@@ -77,7 +77,8 @@ end
 """
     mutualinfo(f::Matrix{T}) where T <: Real
 
-Compute the mutual information of frequency matrix `f`; value is bounded within [0, ∞].
+Compute the mutual information of frequency matrix `f`;
+value is bounded within [0, log(min(size(`f`)))].
 """
 function mutualinfo(f::Matrix{T} where {T<:Real})
     minimum(size(f)) >= 2 || throw(ArgumentError("Matrix needed, not single row or column"))
@@ -161,7 +162,7 @@ function eda(df::AbstractDataFrame, target::Symbol; groups = 20)::AbstractDataFr
                 println("Warning: [$v] is singled valued, skipped.")
                 continue
             elseif vnlvl > 50
-                println("Warning: [$v] has more than 100 levels, consider binning")
+                println("Note: [$v] has more than 100 levels, consider binning")
             end
 
             mutin = mutualinfo(frq)
@@ -197,7 +198,7 @@ function eda(df::AbstractDataFrame, target::Symbol; groups = 20)::AbstractDataFr
                 println("Warning: [$v] is singled valued, skipped.")
                 continue
             elseif vnlvl > 50
-                println("Warning: [$v] has more than 100 levels, consider binning")
+                println("Note: [$v] has more than 100 levels, consider binning")
             end
 
             mutin = mutualinfo(frq)
