@@ -10,3 +10,7 @@ df.tc = categorical(df.t)
 eda(df, :t)
 
 eda(df, :x1)
+
+f = [9800 9925 11825; 190200 190075 188175]'
+infovalue(f)
+mutualinfo(f)

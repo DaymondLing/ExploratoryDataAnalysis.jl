@@ -26,18 +26,18 @@ function infovalue(p, q)
 
     kldivergence(pn, qn) + kldivergence(qn, pn)
 end
-infovalue(f::Matrix) = infovalue(f[:, 1], f[:, 2])
+infovalue(f::AbstractMatrix) = infovalue(f[:, 1], f[:, 2])
 infovalue(f::NamedArray) = infovalue(f.array)
 
 
 """
-    cramerv(f::Matrix{T}) where T <: Real
+    cramerv(f::AbstractMatrix{T}) where T <: Real
 
 Compute Cramer's V of a contingency table `f`.\\
 ϕ coefficient is √(χ²/n), bounded within [0, √min(row-1,col-1)],
 Cramer's V is ϕ/√min(row-1,col-1), bounded within [0,1].
 """
-function cramerv(f::Matrix{T}) where {T<:Real}
+function cramerv(f::AbstractMatrix{T}) where {T<:Real}
     minimum(size(f)) >= 2 || throw(ArgumentError("Matrix needed, not single row or column"))
 
     p = norm1(f)
@@ -75,12 +75,12 @@ end
 
 
 """
-    mutualinfo(f::Matrix{T}) where T <: Real
+    mutualinfo(f::AbstractMatrix{T}) where T <: Real
 
 Compute the mutual information of frequency matrix `f`;
 value is bounded within [0, log(min(size(`f`)))].
 """
-function mutualinfo(f::Matrix{T} where {T<:Real})
+function mutualinfo(f::AbstractMatrix{T} where {T<:Real})
     minimum(size(f)) >= 2 || throw(ArgumentError("Matrix needed, not single row or column"))
 
     ps = norm1(f)
@@ -156,7 +156,7 @@ function eda(df::AbstractDataFrame, target::Symbol; groups = 20)::AbstractDataFr
                 vb = df[!, v]
             end
 
-            frq = freqtable(vb, t).array
+            frq = proptable(vb, t).array
             vnlvl = size(frq, 1)
             if vnlvl == 1
                 println("Warning: [$v] is singled valued, skipped.")
@@ -192,7 +192,7 @@ function eda(df::AbstractDataFrame, target::Symbol; groups = 20)::AbstractDataFr
                 vb = df[!, v]
             end
 
-            frq = freqtable(vb, t).array
+            frq = proptable(vb, t).array
             vnlvl = size(frq, 1)
             if vnlvl == 1
                 println("Warning: [$v] is singled valued, skipped.")
